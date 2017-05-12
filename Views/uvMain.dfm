@@ -1,0 +1,116 @@
+object FormMain: TFormMain
+  Left = 0
+  Top = 0
+  Caption = 'Tiles Manager'
+  ClientHeight = 443
+  ClientWidth = 850
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Font.Style = []
+  OldCreateOrder = False
+  OnCreate = FormCreate
+  OnResize = FormResize
+  PixelsPerInch = 96
+  TextHeight = 13
+  object StatusBar1: TStatusBar
+    Left = 0
+    Top = 424
+    Width = 850
+    Height = 19
+    Panels = <>
+    ExplicitLeft = -172
+    ExplicitWidth = 1022
+  end
+  object pnlTool: TPanel
+    Left = 574
+    Top = 0
+    Width = 276
+    Height = 424
+    Align = alRight
+    BevelEdges = []
+    BevelInner = bvRaised
+    BevelKind = bkSoft
+    BevelOuter = bvLowered
+    TabOrder = 1
+    object lblTilesCount: TLabel
+      Left = 26
+      Top = 18
+      Width = 49
+      Height = 19
+      Caption = '14/21'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -16
+      Font.Name = 'Tahoma'
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
+    object btnAdd: TBitBtn
+      Left = 163
+      Top = 60
+      Width = 102
+      Height = 25
+      Caption = #1044#1086#1073#1072#1074#1080#1090#1100
+      DoubleBuffered = True
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      Font.Style = [fsBold]
+      ParentDoubleBuffered = False
+      ParentFont = False
+      TabOrder = 0
+    end
+    object edTileName: TEdit
+      Left = 14
+      Top = 62
+      Width = 143
+      Height = 21
+      TabOrder = 1
+    end
+    object btnSave: TBitBtn
+      Left = 58
+      Top = 110
+      Width = 151
+      Height = 35
+      Caption = #1057#1086#1093#1088#1072#1085#1080#1090#1100
+      DoubleBuffered = True
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -15
+      Font.Name = 'Tahoma'
+      Font.Style = [fsBold]
+      ParentDoubleBuffered = False
+      ParentFont = False
+      TabOrder = 2
+    end
+  end
+  object scrlTiles: TScrollBox
+    Left = 0
+    Top = 0
+    Width = 574
+    Height = 424
+    HorzScrollBar.Visible = False
+    Align = alClient
+    BevelEdges = []
+    BorderStyle = bsNone
+    TabOrder = 2
+    ExplicitTop = -163
+    ExplicitWidth = 800
+    ExplicitHeight = 606
+    object pnlTiles: TPanel
+      Left = 0
+      Top = 0
+      Width = 574
+      Height = 273
+      Align = alTop
+      AutoSize = True
+      BevelOuter = bvNone
+      TabOrder = 0
+      ExplicitWidth = 800
+    end
+  end
+end
