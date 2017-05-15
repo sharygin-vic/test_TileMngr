@@ -21,8 +21,6 @@ object FormMain: TFormMain
     Width = 850
     Height = 19
     Panels = <>
-    ExplicitLeft = -172
-    ExplicitWidth = 1022
   end
   object pnlTool: TPanel
     Left = 574
@@ -98,9 +96,6 @@ object FormMain: TFormMain
     BevelEdges = []
     BorderStyle = bsNone
     TabOrder = 2
-    ExplicitTop = -163
-    ExplicitWidth = 800
-    ExplicitHeight = 606
     object pnlTiles: TPanel
       Left = 0
       Top = 0
@@ -110,7 +105,6 @@ object FormMain: TFormMain
       AutoSize = True
       BevelOuter = bvNone
       TabOrder = 0
-      ExplicitWidth = 800
     end
   end
 end

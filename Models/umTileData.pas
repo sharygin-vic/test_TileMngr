@@ -2,37 +2,39 @@ unit umTileData;
 
 interface
 
+uses ZDataset;
+
 type
   TDataState = (dsOk, dsDel, dsIns);
 
   TTileDataModel = class
-    private
+    protected
       fId : integer;
-      fName : String;
       fDataState : TDataState;
 
     public
       constructor Create;  overload;
-      constructor Create(aId : integer; aName : String); overload;
+      constructor Create(aId : integer); overload;
+      procedure PreapareInsertQry(aQry : TZQuery); virtual; abstract;
+      procedure LoadFrom(aQry : TZQuery); virtual; abstract;
 
       property ID : integer read fId;
-      property Name : String read fName;
       property DataState : TDataState read fDataState write fDataState;
   end;
 
 implementation
 
-  constructor TTileDataModel.Create(aId : integer; aName : String);
+  constructor TTileDataModel.Create(aId : integer);
   begin
+    inherited Create;
     fId := aId;
-    fName := aName;
     fDataState := dsOk;
   end;
 
   constructor TTileDataModel.Create();
   begin
+    inherited Create;
     fId := -1;
-    fName := '';
     fDataState := dsOk;
   end;
 

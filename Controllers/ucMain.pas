@@ -2,34 +2,27 @@ unit ucMain;
 
 interface
 
-uses uvMain, uvFrmTile, umTileData, ucFrmTile, Generics.Collections, ZConnection, ZDataset;
+uses uvMain, umMainData, uvITileView, umTileData, ucFrmTile;
 
 type
-  TFormMainController = class
+  TFormMainController<D : TTileDataModel, constructor> = class
   private
-    fTilesList : TObjectList<TTileDataModel>;
     fView: TFormMain;
-    //fModel: TTileDataModel;
-    fFrmTileController : TFrmTileController;
+    fModel: TTilesDataList<D>;
+    fFrmTileController : TFrmTileController<D>;
     fdataChanged : boolean;
-
-    ZConnectionDb: TZConnection;
-    ZQueryTiles: TZQuery;
 
     procedure OnBtnAddClick(Sender: TObject);
     procedure OnBtnSaveClick(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 
     procedure updateTilesLabel;
-
-    procedure DBLoadTiles;
-    procedure DBInsertTile(aTileData : TTileDataModel);
-    procedure DBDelTile(aTileData : TTileDataModel);
   public
-    constructor Create(aView: TFormMain);
+    constructor Create(aView: TFormMain; aModel: TTilesDataList<D>; aFrmTileController : TFrmTileController<D>);
     destructor Destroy; override;
-    procedure addTile(aTileData : TTileDataModel);
-    procedure removeTile(aTile : TFrameTile);
+    procedure addTile(aTileData : D);
+    procedure removeTile(aTile : ITileView);
+    procedure DBLoadTiles;
   end;
 
 const
@@ -37,56 +30,33 @@ const
 
 implementation
 
-uses  SysUtils,Forms,Windows, ZDbcIntfs, uvLogin;
+uses  SysUtils,Forms,Windows, ZDbcIntfs, uvLogin, controls;
 
-procedure TFormMainController.updateTilesLabel;
+procedure TFormMainController<D>.updateTilesLabel;
 begin
   fView.lblTilesCount.Caption := intToStr(fView.pnlTiles.ControlCount) + '/' + intToStr(MaxTileCount);
 end;
 
 
-constructor TFormMainController.Create(aView: TFormMain);
+constructor TFormMainController<D>.Create(aView: TFormMain; aModel: TTilesDataList<D>; aFrmTileController : TFrmTileController<D>);
 var
   fmLogin : TfmLogin;
 begin
-  fView := aView;
-  fFrmTileController := TFrmTileController.Create(aView, removeTile);
+  inherited Create;
 
-  fTilesList := TObjectList<TTileDataModel>.Create(true);
+  fView := aView;
+  fModel := aModel;
+  fModel.OnAddTile := self.addTile;
+  fFrmTileController := aFrmTileController;
+  fFrmTileController.RemoveTileProc := self.removeTile;
 
   fView.btnAdd.OnClick := OnBtnAddClick;
   fView.btnSave.OnClick := OnBtnSaveClick;
   fView.OnCloseQuery := FormCloseQuery;
   updateTilesLabel;
-  //
-  ZConnectionDb := TZConnection.Create(nil);
 
-  fmLogin := TfmLogin.Create(nil);
-  if fmLogin.ShowModal = id_ok then
-  begin
-    ZConnectionDb.HostName := fmLogin.edHostName.Text;
-    ZConnectionDb.Database := fmLogin.edDatabase.Text;
-    ZConnectionDb.User     := fmLogin.edUser.Text;
-    ZConnectionDb.Password := fmLogin.edPassword.Text;
-  end
-  else begin
-    ZConnectionDb.HostName := '127.0.0.1';
-    ZConnectionDb.Database := 'tilesdb';
-    ZConnectionDb.User     := 'root';
-    ZConnectionDb.Password := 'mysql';
-  end;
-  fmLogin.Free;
-
-  ZConnectionDb.Protocol := 'mysql-5';
-  ZConnectionDb.LibraryLocation := ExtractFilePath(Application.ExeName) + 'libmariadb.dll';  // 'C:\Work_D_2010\TileMngr\libmariadb.dll';
-  ZConnectionDb.TransactIsolationLevel := tiReadCommitted;
-  //ZConnectionDb.LoginPrompt := true;
   try
-    ZConnectionDb.Connect;
-
-    ZQueryTiles := TZQuery.Create(nil);
-    ZQueryTiles.Connection := ZConnectionDb;
-
+    fModel.ConnectDb;
     DBLoadTiles;
     fView.tailsReposition;
     updateTilesLabel;
@@ -96,32 +66,25 @@ begin
   end;
 end;
 
-destructor TFormMainController.Destroy;
+destructor TFormMainController<D>.Destroy;
 begin
-  try
-    ZQueryTiles.Close;
-    ZConnectionDb.Disconnect;
-  except
-  end;
-
-  fFrmTileController.Free;
-  fTilesList.Free;
+  fModel.DisconnectDB;
+  inherited Destroy;
 end;
 
 
 
-procedure TFormMainController.addTile(aTileData : TTileDataModel);
+procedure TFormMainController<D>.addTile(aTileData : D);
 var
-  tile : TFrameTile;
+  tile : ITileView;
 begin
   tile := fFrmTileController.makeFrameTile(aTileData);
-  fTilesList.Add(aTileData);
+  fModel.TilesList.Add(aTileData);
   fView.tailsReposition;
-
   updateTilesLabel;
 end;
 
-procedure TFormMainController.OnBtnAddClick(Sender: TObject);
+procedure TFormMainController<D>.OnBtnAddClick(Sender: TObject);
 var
   TileData : TTileDataModel;
 begin
@@ -136,37 +99,39 @@ begin
     exit;
   end;
 
-  TileData := TTileDataModel.Create(-1, fView.edTileName.Text);
+  TileData := D.Create;
+  fFrmTileController.InitTileDataModel(TileData);
+
   addTile(TileData);
   TileData.DataState := dsIns;
   fdataChanged := true;
 end;
 
-procedure TFormMainController.removeTile(aTile : TFrameTile);
+procedure TFormMainController<D>.removeTile(aTile : ITileView);
 begin
-  fView.pnlTiles.RemoveControl(aTile);
-  aTile.TileData.DataState := dsDel;
+  fView.pnlTiles.RemoveControl(aTile as TControl);
+  (TTileDataModel(aTile.getTileData)).DataState := dsDel;
   fView.tailsReposition;
 
   updateTilesLabel;
   fdataChanged := true;
 end;
 
-procedure TFormMainController.OnBtnSaveClick(Sender: TObject);
+procedure TFormMainController<D>.OnBtnSaveClick(Sender: TObject);
 var
   curTileData : TTileDataModel;
   i, maxNum : integer;
 begin
-  maxNum := fTilesList.Count - 1;
+  maxNum := fModel.TilesList.Count - 1;
 
   // insert into DB
   for i := 0 to maxNum do
   begin
-    curTileData := fTilesList.Items[i];
+    curTileData := fModel.TilesList.Items[i];
     if curTileData.DataState = dsIns then
     begin
       try
-        DBInsertTile(curTileData);
+        fModel.DBInsertTile(curTileData);
       except
         //TODO переделать на счетчик ошибок и вывод одного окна обо всех неудачах в конце:
         Application.MessageBox('Ошибка записи в базу данных.', 'Внимание', mb_ok) ;
@@ -179,17 +144,17 @@ begin
   // del from DB
   for i := maxNum downto 0 do
   begin
-    curTileData := fTilesList.Items[i];
+    curTileData := fModel.TilesList.Items[i];
     if curTileData.DataState = dsDel then
     begin
       try
-        DBDelTile(curTileData);
+        fModel.DBDelTile(curTileData);
       except
         //TODO переделать на счетчик ошибок и вывод одного окна обо всех неудачах в конце:
         Application.MessageBox('Ошибка записи в базу данных.', 'Внимание', mb_ok) ;
         exit;    // возможн вариант продолжения цикла, но если не выйти, можно попасть на ряд раздражающих мельканий окна об ошибке
       end;
-      fTilesList.Remove(curTileData);    // List is owner for items => auto destroy items
+      fModel.TilesList.Remove(curTileData);    // List is owner for items => auto destroy items
     end;
   end;
 
@@ -199,90 +164,24 @@ begin
   fdataChanged := false;
 end;
 
-procedure TFormMainController.DBLoadTiles;
+procedure TFormMainController<D>.DBLoadTiles;
 var
   i, MaxNum : integer;
-  curTileData : TTileDataModel;
+  curData : D;
 begin
-  fTilesList.Clear;     // чистка списка TTileDataModel
-
   // чистка фреймов на главном окне:
   MaxNum := fView.pnlTiles.ControlCount - 1;
   for i := maxNum downto 0 do
   begin
     fView.pnlTiles.RemoveControl(fView.pnlTiles.Controls[i]);
   end;
-
-  try
-    try
-      ZQueryTiles.Close;
-      ZQueryTiles.sql.Clear;
-      ZQueryTiles.sql.Append('select * from tile');
-      ZQueryTiles.open;
-
-      MaxNum := ZQueryTiles.RecordCount;
-      if MaxNum > 0 then
-      begin
-        ZQueryTiles.First;
-        repeat
-          curTileData := TTileDataModel.Create(
-              ZQueryTiles.FieldByName('id').AsInteger,
-              ZQueryTiles.FieldByName('name').AsString);
-          self.addTile(curTileData);
-          ZQueryTiles.Next;
-          dec(MaxNum);
-        until MaxNum = 0;
-      end;
-    except
-      Application.MessageBox('Ошибка чтения из базы данных.', 'Внимание', mb_ok) ;
-      //exit;
-    end;
-  finally
-    ZQueryTiles.Close;
-  end;
+  fView.IsTilesRepositionEnabled := false;
+  fModel.DBLoadTiles;
+  fView.IsTilesRepositionEnabled := true;
 end;
 
-procedure TFormMainController.DBInsertTile(aTileData : TTileDataModel);
-begin
-  ZQueryTiles.Close;
-  ZQueryTiles.sql.Clear;
-  ZQueryTiles.sql.Append('insert into tile (name) values (:name);');
-  ZQueryTiles.Params[0].AsString := aTileData.Name;
 
-  ZConnectionDb.StartTransaction;
-  try
-    ZQueryTiles.ExecSQL;
-    ZConnectionDb.Commit;
-    (*
-    DBLoadTiles;  //  костыль - надо бы не перечитывать все для однопользовательской БД,
-                  //  а получить ID записи с сервера. Нет времени разбираться.
-                  //  Хотя для сетевой работы лучше зарефрешить все-таки на клиенте все
-    *)
-  except
-    ZConnectionDb.Rollback;
-    raise;
-  end;
-end;
-
-procedure TFormMainController.DBDelTile(aTileData : TTileDataModel);
-begin
-  ZQueryTiles.Close;
-//  ZQueryTiles.Open;
-  ZQueryTiles.sql.Clear;
-  ZQueryTiles.sql.Append('delete from tile where id = :id');
-  ZQueryTiles.Params[0].AsInteger := aTileData.id;
-
-  ZConnectionDb.StartTransaction;
-  try
-    ZQueryTiles.ExecSQL;
-    ZConnectionDb.Commit;
-  except
-    ZConnectionDb.Rollback;
-    raise;
-  end;
-end;
-
-procedure TFormMainController.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+procedure TFormMainController<D>.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
   CanClose:= not (fdataChanged and (Application.MessageBox('Данные были изменены. Отменить выход?', 'Внимание', mb_YesNo) = id_yes));
 end;

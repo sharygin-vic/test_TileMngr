@@ -2,57 +2,71 @@ unit ucFrmTile;
 
 interface
 
-uses uvMain, uvFrmTile, umTileData;
+uses uvMain, umTileData, uvITileView;
 
 type
-  TRemoveProc = procedure (aTile : TFrameTile) of object;
+  TRemoveTileProc = procedure (aTile : ITileView) of object;
 
-  TFrmTileController = class
-  private
+  TFrmTileController<D : TTileDataModel> =  class  abstract
+  protected
     fView: TFormMain;
-    //fModel: TTileDataModel;
-    fRemoveProc : TRemoveProc;
+    fRemoveTileProc : TRemoveTileProc;
+    fTileViewFab : ITileViewFab;
 
-    procedure onTileCloseClick(Sender: TObject);
+    class var NameIndex : integer;
+
+    procedure onTileCloseClick(Sender: ITileView);
+    class function getNextNameIndex : integer;
+    procedure ShowDataIntoFrame(aFrameTile : ITileView; aTileData : D);  virtual; abstract;
   public
-    constructor Create(aView: TFormMain; aRemoveProc : TRemoveProc);
-    function makeFrameTile(aTileData : TTileDataModel) : TFrameTile;
-    procedure TileClose(aFrameTile : TFrameTile);
+    constructor Create(aView: TFormMain; aTileViewFab : ITileViewFab);
+    function makeFrameTile(aTileData : D) : ITileView;
+    procedure TileClose(aFrameTile : ITileView);
+    procedure InitTileDataModel(aTileData : D); virtual; abstract;
+
+    property  RemoveTileProc : TRemoveTileProc write fRemoveTileProc;
   end;
 
 implementation
 
 uses  SysUtils, ExtCtrls;
 
-const
-  nextTileNameNum : integer = 1;
 
-constructor TFrmTileController.Create(aView: TFormMain; (*aModel: TTileDataModel;*) aRemoveProc : TRemoveProc);
+class function TFrmTileController<D>.getNextNameIndex : integer;
 begin
+  inc(NameIndex);
+  result := NameIndex;
+end;
+
+constructor TFrmTileController<D>.Create(aView: TFormMain; aTileViewFab : ITileViewFab);
+begin
+  inherited Create;
   fView := aView;
-  //fModel := aModel;
-  fRemoveProc := aRemoveProc;
+  fTileViewFab := aTileViewFab;
 end;
 
-procedure TFrmTileController.TileClose(aFrameTile : TFrameTile);
+procedure TFrmTileController<D>.TileClose(aFrameTile : ITileView);
 begin
-  if assigned(fRemoveProc) then
-    fRemoveProc(aFrameTile);
+  if assigned(fRemoveTileProc) then
+    fRemoveTileProc(aFrameTile);
 end;
 
-procedure TFrmTileController.onTileCloseClick(Sender: TObject);
+procedure TFrmTileController<D>.onTileCloseClick(Sender: ITileView);
 begin
-  TileClose( TFrameTile((TImage(Sender)).Owner));
+  TileClose(Sender);
 end;
 
-function TFrmTileController.makeFrameTile(aTileData : TTileDataModel) : TFrameTile;
+function TFrmTileController<D>.makeFrameTile(aTileData : D) : ITileView;
 begin
-  result := TFrameTile.Create(fView);
-  result.Parent := fView.pnlTiles;
-  result.TileData := aTileData;
-  result.imgClose.OnClick := onTileCloseClick;
-  result.Name := 'frameTile' + intToStr(nextTileNameNum);
-  inc(nextTileNameNum);
+  result := fTileViewFab.getTileViewInstance(fView, fView.pnlTiles);
+  result.setTileData(aTileData);
+
+  result.setOnCloseClick(onTileCloseClick);
+  result.setControlName('FrameTile' + intToStr(TFrmTileController<D>.getNextNameIndex));
+
+  ShowDataIntoFrame(result, aTileData);
 end;
+
+
 
 end.

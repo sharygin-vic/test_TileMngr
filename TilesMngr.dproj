@@ -20,6 +20,7 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
+			<DCC_Optimize>false</DCC_Optimize>
 			<DCC_ImageBase>00400000</DCC_ImageBase>
 			<DCC_WriteableConstants>true</DCC_WriteableConstants>
 			<DCC_DependencyCheckOutputName>TilesMngr.exe</DCC_DependencyCheckOutputName>
@@ -47,8 +48,8 @@
 			<DCCReference Include="Views\uvMain.pas">
 				<Form>FormMain</Form>
 			</DCCReference>
-			<DCCReference Include="Views\uvFrmTile.pas">
-				<Form>FrameTile</Form>
+			<DCCReference Include="Views\uvFrmTileFolder.pas">
+				<Form>FrameTileFolder</Form>
 				<DesignClass>TFrame</DesignClass>
 			</DCCReference>
 			<DCCReference Include="Models\umTileData.pas"/>
@@ -57,6 +58,11 @@
 			<DCCReference Include="Views\uvLogin.pas">
 				<Form>fmLogin</Form>
 			</DCCReference>
+			<DCCReference Include="Models\umMainData.pas"/>
+			<DCCReference Include="Controllers\ucFrmTileFolder.pas"/>
+			<DCCReference Include="Models\umTileDataFolder.pas"/>
+			<DCCReference Include="Views\uvITileView.pas"/>
+			<DCCReference Include="services\uFrameTileFolderFab.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>
